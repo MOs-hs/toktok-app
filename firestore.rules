@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow users to read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Categories: Read for everyone, Write for Admins only
+    match /categories/{category} {
+      allow read: if true;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Products: Read for everyone, Write for Marketplace owners
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'marketplace';
+    }
+
+    // Orders: Read & write for authenticated users or agents
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Blacklist: Only Admins can see or modify
+    match /blacklist/{itemId} {
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
